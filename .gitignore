@@ -4,3 +4,5 @@ AVRcore.iml
 *.ipr
 *.iws
 *.iml
+.gradle/
+build/

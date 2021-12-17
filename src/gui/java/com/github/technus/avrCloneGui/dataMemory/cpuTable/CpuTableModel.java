@@ -53,7 +53,7 @@ public class CpuTableModel extends DataTableModelAbstract {
     public Object getValueAt(int rowIndex, int columnIndex) {
         switch (columnIndex){
             case 0:{
-                List<IRegister> registers = core.getCpuRegisters().addressesMap().get(core.getCpuRegisters().getOffset()+rowIndex);
+                List<? extends IRegister> registers = core.getCpuRegisters().addressesMap().get(core.getCpuRegisters().getOffset()+rowIndex);
                 return registers==null?"":registers.size()==1?registers.get(0).name():Arrays.toString(registers.stream().map(IRegister::name).toArray());
             }
             case 1:return core.getCpuRegisters()==null?"+"+rowIndex:core.getCpuRegisters().getOffset()+rowIndex;

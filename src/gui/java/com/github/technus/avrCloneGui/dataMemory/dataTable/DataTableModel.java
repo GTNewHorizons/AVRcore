@@ -59,7 +59,7 @@ public class DataTableModel extends DataTableModelAbstract {
         switch (columnIndex){
             case 0:return core.getPackageName(rowIndex);
             case 1:{
-                List<IRegister> registers = core.getDataDefinitions(rowIndex);
+                List<? extends IRegister> registers = core.getDataDefinitions(rowIndex);
                 if(registers==null){
                     return null;
                 }

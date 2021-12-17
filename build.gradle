@@ -1,0 +1,146 @@
+plugins {
+    id 'java'
+    id 'idea'
+    id("com.palantir.git-version") version("0.12.3")
+    id("maven-publish")
+}
+
+def projectJavaVersion = JavaLanguageVersion.of(8)
+
+java {
+    toolchain {
+        languageVersion.set(projectJavaVersion)
+    }
+}
+
+idea {
+    module {
+        inheritOutputDirs = true
+        downloadJavadoc = true
+        downloadSources = true
+    }
+}
+
+// Fix Jenkins' Git: chmod a file should not be detected as a change and append a '.dirty' to the version
+'git config core.fileMode false'.execute()
+
+group = projectGroup
+archivesBaseName = projectId
+
+repositories {
+
+}
+
+configurations {
+    guiCompile
+}
+
+sourceSets {
+    gui {
+        compileClasspath = configurations.guiCompile
+        runtimeClasspath = configurations.guiCompile
+    }
+}
+
+dependencies {
+    guiCompile sourceSets.main.output
+
+    guiCompile files("libs/darcula.jar")
+    guiCompile files("libs/jsyntaxpane-1.1.5.jar")
+}
+
+task runGui(type: JavaExec) {
+    group = "build"
+    description = "Run the GUI for AVRcore"
+
+    classpath = sourceSets.gui.runtimeClasspath
+    classpath += sourceSets.gui.output
+    main = "com.github.technus.avrCloneGui.Main"
+
+    javaLauncher.set(
+            javaToolchains.launcherFor {
+                languageVersion = projectJavaVersion
+            }
+    )
+}
+
+jar {
+    // Pulls version from git tag
+    getArchiveVersion().set(gitVersion())
+
+    from sourceSets.main.output
+    from (file("$projectDir/LICENSE"))
+}
+
+task sourcesJar(type: Jar) {
+    // Pulls version from git tag
+    getArchiveVersion().set(gitVersion())
+
+    from sourceSets.main.output
+    from sourceSets.main.allJava
+    getArchiveClassifier().set('sources')
+}
+
+task guiJar(type: Jar) {
+    // Pulls version from git tag
+    getArchiveVersion().set(gitVersion())
+
+    from sourceSets.main.output
+    from sourceSets.gui.output
+    getArchiveClassifier().set('gui')
+
+    manifest {
+        attributes(["Main-Class" : "com.github.technus.avrCloneGui.Main"])
+    }
+}
+
+task guiSourcesJar(type: Jar) {
+    // Pulls version from git tag
+    getArchiveVersion().set(gitVersion())
+
+    from sourceSets.main.output
+    from sourceSets.main.allJava
+    from sourceSets.gui.output
+    from sourceSets.gui.allJava
+    getArchiveClassifier().set('gui-sources')
+
+    manifest {
+        attributes(["Main-Class" : "com.github.technus.avrCloneGui.Main"])
+    }
+}
+
+artifacts {
+    archives sourcesJar
+    archives guiJar
+    archives guiSourcesJar
+}
+
+// publishing
+publishing {
+    publications {
+        maven(MavenPublication) {
+            artifact source: jar
+            artifact source: sourcesJar, classifier: "src"
+            artifact source: guiJar, classifier: "gui"
+            artifact source: guiSourcesJar, classifier: "gui-sources"
+
+            groupId = System.getenv("ARTIFACT_GROUP_ID") ?: group
+            artifactId = System.getenv("ARTIFACT_ID") ?: project.name
+            version = System.getenv("ARTIFACT_VERSION") ?: project.version
+        }
+    }
+
+    repositories {
+        maven {
+            String owner = System.getenv("REPOSITORY_OWNER") ?: "Unknown"
+            String repositoryName = System.getenv("REPOSITORY_NAME") ?: "Unknown"
+            String githubRepositoryUrl = "https://maven.pkg.github.com/$owner/$repositoryName"
+            name = "GitHubPackages"
+            url = githubRepositoryUrl
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: "NONE"
+                password = System.getenv("GITHUB_TOKEN") ?: "NONE"
+            }
+        }
+    }
+}
