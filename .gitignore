@@ -6,3 +6,4 @@ AVRcore.iml
 *.iml
 .gradle/
 build/
+*.bat
